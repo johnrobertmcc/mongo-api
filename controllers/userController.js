@@ -77,7 +77,7 @@ export async function loginUser(req, res) {
   const { email = null, password = null } = req?.body;
 
   if (!email || !password) {
-    throw new Error('Try Again.');
+    throw new Error('Try Again.', email, password);
   }
 
   const user = await User.findOne({ email });
@@ -88,7 +88,7 @@ export async function loginUser(req, res) {
       _id: user.id,
       name: user.name,
       email: user.email,
-      tags: user?.tags,
+      tags: user?.tags.length ? user.tags : DEFAULT_TAGS,
       token: _generateToken(user._id),
       theme: user?.theme || null,
     });
@@ -110,7 +110,13 @@ export async function loginUser(req, res) {
  * @param  {object} res  The response object.
  */
 export async function getUser(req, res) {
-  res.status(200).json({ message: 'User Information.', user: req?.user });
+  const { email = null } = req?.user;
+  if (!email) {
+    throw new Error('Try Again - missing email.');
+  }
+
+  const user = await User.findOne({ email });
+  res.status(200).json({ message: 'User Information.', user });
 }
 
 /**
@@ -127,11 +133,9 @@ function _generateToken(id) {
   const token = sign({ id }, process.env.JWT_SECRET, {
     expiresIn: '30d',
   });
-  // console.log('jr token', token);
   return token;
 }
 
-// _generateToken('62f5b3859dddedaeee6e2839'); //john.robert.mcc@gmail.com
 /**
  * Function used to update a user in the database by id.
  *

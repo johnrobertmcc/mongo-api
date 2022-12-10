@@ -1,5 +1,6 @@
 import { Budget } from '../models/budgetModel.js';
 import { User } from '../models/userModel.js';
+import { calculateExpenseTotal } from '../utils/budget/index.js';
 
 /**
  * Function used to get a single user's budget from MongoDb.
@@ -246,4 +247,77 @@ export async function addManyItems(req, res) {
   await Budget.insertMany(insertion);
 
   return res.status(200).json({ version: process.env.VERSION, insertion });
+}
+
+/**
+ * Function used to get the upcoming expenses of a user.
+ *
+ * @author John Robert McCann
+ * @since 12/08/2022
+ * @route GET /api/v1/budget/upcoming
+ * @version 1.0.0
+ * @param {object} req The request object.
+ * @param {object} res The response object.
+ */
+export async function getUpcomingExpenses(req, res) {
+  const { number = 5 } = req?.query;
+
+  const searchParams = {
+    user: req?.user?.id,
+    date: { $gte: new Date() },
+  };
+  const budget = await Budget.find(searchParams)
+    .limit(number)
+    .sort({ date: 1 });
+
+  return res.status(200).json({
+    version: process.env.VERSION,
+    items: budget.length,
+    expenses: budget,
+  });
+}
+
+/**
+ * Function used to get the total expenses per month.
+ *
+ * @author John Robert McCann
+ * @since 12/09/2022
+ * @route GET /api/v1/budget/total
+ * @version 1.0.0
+ * @param {object} req The request object.
+ * @param {object} res The response object.
+ */
+export async function getTotalPerMonth(req, res) {
+  const { month = null, year = null, numDays = 31 } = req?.query;
+  const { id = null } = req?.user;
+
+  if (!month) {
+    res.status(401);
+    throw new Error('Please provide a month.');
+  }
+
+  if (!id) {
+    res.status(401);
+    throw new Error('User not authorized');
+  }
+  const monthParsed = parseInt(month) + 1;
+
+  const beginningOfMonth = new Date(`${monthParsed}/01/${year}`);
+  const endOfMonth = new Date(`${monthParsed}/${numDays}/${year}`);
+
+  const searchParams = {
+    user: id,
+    date: { $gte: beginningOfMonth, $lte: endOfMonth },
+  };
+
+  const budget = await Budget.find(searchParams);
+
+  const total = calculateExpenseTotal(budget);
+
+  return res.status(200).json({
+    version: process.env.VERSION,
+    items: budget.length,
+    expenses: budget,
+    total,
+  });
 }
