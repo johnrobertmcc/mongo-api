@@ -14,45 +14,9 @@ import { calculateExpenseTotal } from '../utils/budget/index.js';
  * @param {object} res  The response object.
  */
 export async function getBudget(req, res) {
-  const {
-    item = null,
-    amount = null,
-    event = null,
-    id = null,
-    lte = null,
-    gte = null,
-    date = null,
-    tag = null,
-  } = req?.query;
-
   let searchParams = { user: req?.user?.id };
 
-  if (id) {
-    searchParams._id = id;
-  }
-  if (item) {
-    searchParams.item = item;
-  }
-  if (event) {
-    searchParams.event = event;
-  }
-  if (amount) {
-    searchParams.amount = amount;
-  }
-  if (lte) {
-    searchParams.amount = { $lte: lte };
-  }
-  if (gte) {
-    searchParams.amount = { $gte: gte };
-  }
-  if (date) {
-    searchParams.date = date;
-  }
-  if (date) {
-    searchParams.tag = tag;
-  }
-
-  const budget = await Budget.find(searchParams);
+  const budget = await Budget.find(searchParams).sort({ date: 1 });
   return res.status(200).json({
     version: process.env.VERSION,
     items: budget?.length,

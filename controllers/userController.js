@@ -148,7 +148,11 @@ function _generateToken(id) {
  * @param {object} res  The response object.
  */
 export async function updateUser(req, res) {
-  const user = await User.updateOne({ _id: req?.body?._id }, req?.body);
+  console.log('jr req', req.body);
+  const user = await User.updateOne(
+    { _id: req?.body?.data?._id },
+    req?.body?.data
+  );
   return res.status(200).json({
     version: process.env.VERSION,
     goal: `Updated User ${new Date()}`,
